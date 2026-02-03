@@ -17,8 +17,10 @@ interface UpgradeItem {
 }
 
 export const UpgradeShop = ({ state, onBuyUpgrade }: UpgradeShopProps) => {
+  const upgradeCounts = state.upgradeCounts || {};
+  
   const getActualCost = (id: string, baseCost: number): number => {
-    const purchaseCount = state.upgradeCounts[id] || 0;
+    const purchaseCount = upgradeCounts[id] || 0;
     return baseCost * Math.pow(1.5, purchaseCount);
   };
 
@@ -49,7 +51,7 @@ export const UpgradeShop = ({ state, onBuyUpgrade }: UpgradeShopProps) => {
     const balance = upgrade.currency === 'money' ? state.money : state.deadPoints;
     const canAfford = balance >= actualCost;
     const currencySymbol = upgrade.currency === 'money' ? '$' : '💀';
-    const purchaseCount = state.upgradeCounts[upgrade.id] || 0;
+    const purchaseCount = upgradeCounts[upgrade.id] || 0;
 
     return (
       <button
