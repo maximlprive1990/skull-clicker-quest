@@ -19,6 +19,9 @@ export interface GameState {
   lifetimeRewardMultiplier: number;
   hasSpecialAutoClick: boolean;
   specialAutoClickEndTime: number | null;
+  
+  // Upgrade purchase counts (for scaling costs)
+  upgradeCounts: Record<string, number>;
 }
 
 const initialState: GameState = {
@@ -36,6 +39,7 @@ const initialState: GameState = {
   lifetimeRewardMultiplier: 1,
   hasSpecialAutoClick: false,
   specialAutoClickEndTime: null,
+  upgradeCounts: {},
 };
 
 export const useGameState = () => {
@@ -120,8 +124,8 @@ export const useGameState = () => {
     setState(prev => {
       if (prev.energy <= 0) return prev;
 
-      // Random rewards
-      const baseMoney = Math.random() * (0.05 - 0.0001) + 0.0001;
+      // Random rewards (reduced significantly for longer gameplay)
+      const baseMoney = Math.random() * (0.0005 - 0.00001) + 0.00001;
       const baseXp = Math.random() * (2.5 - 1) + 1;
       
       const moneyGain = baseMoney * prev.clickMultiplier * prev.lifetimeRewardMultiplier;
@@ -160,11 +164,16 @@ export const useGameState = () => {
 
   const buyUpgrade = useCallback((type: string, cost: number, currency: 'money' | 'dead') => {
     setState(prev => {
+      // Calculate actual cost based on purchase count
+      const purchaseCount = prev.upgradeCounts[type] || 0;
+      const actualCost = cost * Math.pow(1.5, purchaseCount); // Cost increases by 50% each purchase
+      
       const balance = currency === 'money' ? prev.money : prev.deadPoints;
-      if (balance < cost) return prev;
+      if (balance < actualCost) return prev;
 
       const updates: Partial<GameState> = {
-        [currency === 'money' ? 'money' : 'deadPoints']: balance - cost
+        [currency === 'money' ? 'money' : 'deadPoints']: balance - actualCost,
+        upgradeCounts: { ...prev.upgradeCounts, [type]: purchaseCount + 1 }
       };
 
       switch (type) {
