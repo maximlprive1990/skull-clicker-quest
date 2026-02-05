@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          auto_click_end_time: number | null
+          auto_click_reward: number
+          click_multiplier: number
+          created_at: string
+          dead_points: number
+          energy: number
+          energy_regen: number
+          experience: number
+          id: string
+          level: number
+          max_energy: number
+          money: number
+          special_auto_click_end_time: number | null
+          total_clicks: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_click_end_time?: number | null
+          auto_click_reward?: number
+          click_multiplier?: number
+          created_at?: string
+          dead_points?: number
+          energy?: number
+          energy_regen?: number
+          experience?: number
+          id?: string
+          level?: number
+          max_energy?: number
+          money?: number
+          special_auto_click_end_time?: number | null
+          total_clicks?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_click_end_time?: number | null
+          auto_click_reward?: number
+          click_multiplier?: number
+          created_at?: string
+          dead_points?: number
+          energy?: number
+          energy_regen?: number
+          experience?: number
+          id?: string
+          level?: number
+          max_energy?: number
+          money?: number
+          special_auto_click_end_time?: number | null
+          total_clicks?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -5,15 +5,45 @@ import { UpgradeShop } from '@/components/UpgradeShop';
 import { FloatingReward } from '@/components/FloatingReward';
 import { AutoClickTimer } from '@/components/AutoClickTimer';
 import { useGameState } from '@/hooks/useGameState';
-import { RotateCcw } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { RotateCcw, LogIn, LogOut, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { state, isClicking, floatingRewards, performClick, buyUpgrade, resetGame } = useGameState();
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const xpToLevel = state.level * 100;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-8 px-4 overflow-x-hidden">
+      {/* Auth Header */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        {loading ? null : user ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {user.email?.split('@')[0]}
+            </span>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-neon-red transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/auth')}
+            className="flex items-center gap-1 text-xs text-neon-green hover:text-neon-green/80 transition-colors border border-neon-green/30 px-3 py-1.5 rounded-md"
+          >
+            <LogIn className="w-4 h-4" />
+            Connexion
+          </button>
+        )}
+      </div>
+
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="font-display text-5xl md:text-6xl text-neon-green tracking-wider mb-2">
@@ -84,9 +114,16 @@ const Index = () => {
       </button>
 
       {/* Footer */}
-      <p className="mt-4 text-xs text-muted-foreground">
-        Total clicks: {state.totalClicks.toLocaleString()}
-      </p>
+      <div className="mt-4 text-center">
+        <p className="text-xs text-muted-foreground">
+          Total clicks: {state.totalClicks.toLocaleString()}
+        </p>
+        {!user && (
+          <p className="text-xs text-neon-green/70 mt-1">
+            🔐 Connecte-toi pour sauvegarder ta progression!
+          </p>
+        )}
+      </div>
     </div>
   );
 };

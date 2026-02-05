@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export interface GameState {
   money: number;
@@ -42,19 +44,114 @@ const initialState: GameState = {
   upgradeCounts: {},
 };
 
+// Debounce function for saving
+const debounce = <T extends (...args: unknown[]) => void>(fn: T, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
 export const useGameState = () => {
+  const { user } = useAuth();
   const [state, setState] = useState<GameState>(() => {
     const saved = localStorage.getItem('skullClickerState');
     return saved ? { ...initialState, ...JSON.parse(saved) } : initialState;
   });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isClicking, setIsClicking] = useState(false);
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; value: number; type: 'money' | 'xp' | 'dead' }>>([]);
 
-  // Save state
+  // Load from database when user logs in
   useEffect(() => {
+    const loadFromDatabase = async () => {
+      if (!user) {
+        setIsLoaded(true);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        setIsLoaded(true);
+        return;
+      }
+
+      if (data) {
+        // Merge local state upgrades that aren't in DB
+        const localState = localStorage.getItem('skullClickerState');
+        const localUpgrades = localState ? JSON.parse(localState).upgradeCounts || {} : {};
+        
+        setState({
+          money: data.money || 0,
+          energy: data.energy || 100,
+          maxEnergy: data.max_energy || 100,
+          experience: data.experience || 0,
+          level: data.level || 1,
+          deadPoints: data.dead_points || 0,
+          totalClicks: data.total_clicks || 0,
+          clickMultiplier: data.click_multiplier || 1,
+          autoClickReward: data.auto_click_reward || 0,
+          autoClickEndTime: data.auto_click_end_time || null,
+          energyRegenRate: data.energy_regen || 1,
+          lifetimeRewardMultiplier: 1,
+          hasSpecialAutoClick: !!data.special_auto_click_end_time,
+          specialAutoClickEndTime: data.special_auto_click_end_time || null,
+          upgradeCounts: localUpgrades,
+        });
+      }
+      setIsLoaded(true);
+    };
+
+    loadFromDatabase();
+  }, [user]);
+
+  // Save to database (debounced)
+  const saveToDatabase = useCallback(
+    debounce(async (gameState: GameState, userId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          money: Math.floor(gameState.money),
+          dead_points: gameState.deadPoints,
+          level: gameState.level,
+          experience: Math.floor(gameState.experience),
+          energy: gameState.energy,
+          max_energy: gameState.maxEnergy,
+          total_clicks: gameState.totalClicks,
+          click_multiplier: gameState.clickMultiplier,
+          energy_regen: gameState.energyRegenRate,
+          auto_click_end_time: gameState.autoClickEndTime,
+          auto_click_reward: gameState.autoClickReward,
+          special_auto_click_end_time: gameState.specialAutoClickEndTime,
+        })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error saving to database:', error);
+      }
+    }, 2000),
+    []
+  );
+
+  // Save state to localStorage and database
+  useEffect(() => {
+    if (!isLoaded) return;
+    
     localStorage.setItem('skullClickerState', JSON.stringify(state));
-  }, [state]);
+    
+    if (user) {
+      saveToDatabase(state, user.id);
+    }
+  }, [state, user, isLoaded, saveToDatabase]);
 
   // Energy regeneration
   useEffect(() => {
@@ -220,7 +317,27 @@ export const useGameState = () => {
   const resetGame = useCallback(() => {
     setState(initialState);
     localStorage.removeItem('skullClickerState');
-  }, []);
+    
+    if (user) {
+      supabase
+        .from('profiles')
+        .update({
+          money: 0,
+          dead_points: 0,
+          level: 1,
+          experience: 0,
+          energy: 100,
+          max_energy: 100,
+          total_clicks: 0,
+          click_multiplier: 1,
+          energy_regen: 1,
+          auto_click_end_time: null,
+          auto_click_reward: 0,
+          special_auto_click_end_time: null,
+        })
+        .eq('user_id', user.id);
+    }
+  }, [user]);
 
   return {
     state,
