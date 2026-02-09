@@ -349,7 +349,7 @@ export const useGameState = () => {
           updates.energyRegenRate = prev.energyRegenRate * 2;
           break;
         case 'x750click':
-          updates.clickMultiplier = prev.clickMultiplier * 750;
+          updates.clickMultiplier = prev.clickMultiplier * 5;
           break;
         case 'specialAutoClick':
           updates.hasSpecialAutoClick = true;
