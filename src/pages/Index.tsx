@@ -6,7 +6,7 @@ import { FloatingReward } from '@/components/FloatingReward';
 import { AutoClickTimer } from '@/components/AutoClickTimer';
 import { useGameState } from '@/hooks/useGameState';
 import { useAuth } from '@/hooks/useAuth';
-import { RotateCcw, LogIn, LogOut, User } from 'lucide-react';
+import { RotateCcw, LogIn, LogOut, User, Pickaxe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -100,6 +100,15 @@ const Index = () => {
           ⚡ Énergie épuisée! Attends la régénération...
         </div>
       )}
+
+      {/* Mining Link */}
+      <button
+        onClick={() => navigate('/mining')}
+        className="w-full max-w-md mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-accent/10 border border-accent/30 rounded-xl text-neon-purple hover:bg-accent/20 transition-colors font-game text-sm"
+      >
+        <Pickaxe className="w-5 h-5" />
+        ⛏️ Aller au Minage DeadSpot
+      </button>
 
       {/* Upgrade Shop */}
       <UpgradeShop state={state} onBuyUpgrade={buyUpgrade} />
