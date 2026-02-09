@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+export interface MinerOwned {
+  id: string;
+  count: number;
+}
+
 export interface GameState {
   money: number;
   energy: number;
@@ -24,7 +29,28 @@ export interface GameState {
   
   // Upgrade purchase counts (for scaling costs)
   upgradeCounts: Record<string, number>;
+
+  // Miners
+  miners: MinerOwned[];
 }
+
+export interface MinerDefinition {
+  id: string;
+  name: string;
+  description: string;
+  baseCost: number;
+  deadSpotPerSec: number;
+  image: string;
+}
+
+export const MINER_DEFINITIONS: MinerDefinition[] = [
+  { id: 'miner1', name: 'Squelette Piocheur', description: 'Un squelette basique avec une pioche rouillée.', baseCost: 50, deadSpotPerSec: 0.000001, image: 'miner-1' },
+  { id: 'miner2', name: 'Mineur de Cristal', description: 'Équipé d\'un casque et d\'une pioche en fer.', baseCost: 500, deadSpotPerSec: 0.00005, image: 'miner-2' },
+  { id: 'miner3', name: 'Extracteur Doré', description: 'Pioche dorée, mine des cristaux violets rares.', baseCost: 5000, deadSpotPerSec: 0.001, image: 'miner-3' },
+  { id: 'miner4', name: 'Foreur Infernal', description: 'Foreuse mécanique alimentée par l\'énergie sombre.', baseCost: 50000, deadSpotPerSec: 0.01, image: 'miner-4' },
+  { id: 'miner5', name: 'Démon des Mines', description: 'Un démon qui fore dans les profondeurs de la lave.', baseCost: 500000, deadSpotPerSec: 0.1, image: 'miner-5' },
+  { id: 'miner6', name: 'Faucheur Suprême', description: 'Le maître absolu des mines. Puissance légendaire.', baseCost: 5000000, deadSpotPerSec: 1, image: 'miner-6' },
+];
 
 const initialState: GameState = {
   money: 0,
@@ -42,6 +68,7 @@ const initialState: GameState = {
   hasSpecialAutoClick: false,
   specialAutoClickEndTime: null,
   upgradeCounts: {},
+  miners: [],
 };
 
 // Debounce function for saving
@@ -90,7 +117,8 @@ export const useGameState = () => {
         const localState = localStorage.getItem('skullClickerState');
         const localUpgrades = localState ? JSON.parse(localState).upgradeCounts || {} : {};
         
-        setState({
+        setState(prev => ({
+          ...prev,
           money: data.money || 0,
           energy: data.energy || 100,
           maxEnergy: data.max_energy || 100,
@@ -106,7 +134,8 @@ export const useGameState = () => {
           hasSpecialAutoClick: !!data.special_auto_click_end_time,
           specialAutoClickEndTime: data.special_auto_click_end_time || null,
           upgradeCounts: localUpgrades,
-        });
+          miners: prev.miners, // keep local miners
+        }));
       }
       setIsLoaded(true);
     };
@@ -204,6 +233,24 @@ export const useGameState = () => {
           updates.hasSpecialAutoClick = false;
         }
         return { ...prev, ...updates };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Miners passive income (DeadSpot per second)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState(prev => {
+        let totalDeadPerSec = 0;
+        for (const owned of prev.miners) {
+          const def = MINER_DEFINITIONS.find(m => m.id === owned.id);
+          if (def) {
+            totalDeadPerSec += def.deadSpotPerSec * owned.count;
+          }
+        }
+        if (totalDeadPerSec === 0) return prev;
+        return { ...prev, deadPoints: prev.deadPoints + totalDeadPerSec };
       });
     }, 1000);
     return () => clearInterval(interval);
@@ -339,12 +386,28 @@ export const useGameState = () => {
     }
   }, [user]);
 
+  const buyMiner = useCallback((minerId: string) => {
+    setState(prev => {
+      const def = MINER_DEFINITIONS.find(m => m.id === minerId);
+      if (!def) return prev;
+      const owned = prev.miners.find(m => m.id === minerId);
+      const count = owned ? owned.count : 0;
+      const cost = def.baseCost * Math.pow(1.8, count);
+      if (prev.money < cost) return prev;
+      const newMiners = owned
+        ? prev.miners.map(m => m.id === minerId ? { ...m, count: m.count + 1 } : m)
+        : [...prev.miners, { id: minerId, count: 1 }];
+      return { ...prev, money: prev.money - cost, miners: newMiners };
+    });
+  }, []);
+
   return {
     state,
     isClicking,
     floatingRewards,
     performClick,
     buyUpgrade,
+    buyMiner,
     resetGame,
   };
 };
