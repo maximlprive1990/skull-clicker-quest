@@ -42,7 +42,7 @@ export const UpgradeShop = ({ state, onBuyUpgrade }: UpgradeShopProps) => {
   const specialUpgrades: UpgradeItem[] = [
     { id: 'x5lifetime', name: 'x5 Lifetime', description: 'x5 rewards permanent!', baseCost: 50, currency: 'dead', icon: <Crown className="w-5 h-5" />, special: true },
     { id: 'fastRegen', name: 'Regen Rapide', description: 'x2 régénération énergie', baseCost: 30, currency: 'dead', icon: <Sparkles className="w-5 h-5" />, special: true },
-    { id: 'x750click', name: 'x750 Click', description: 'Multiplicateur massif!', baseCost: 100, currency: 'dead', icon: <Gauge className="w-5 h-5" />, special: true },
+    { id: 'x750click', name: 'x5 Click', description: 'Multiplicateur x5!', baseCost: 100, currency: 'dead', icon: <Gauge className="w-5 h-5" />, special: true },
     { id: 'specialAutoClick', name: 'Auto x7/s 24h', description: 'Auto-click spécial', baseCost: 75, currency: 'dead', icon: <Skull className="w-5 h-5" />, special: true },
   ];
 
